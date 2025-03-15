@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>多API管理器</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>多API管理器</h1>
+      <p>管理和切换您的API端点和密钥</p>
+    </header>
+
+    <main>
+      <div class="card">
+        <div class="card-header">
+          <h2>API配置</h2>
+          <button id="addConfigBtn" class="btn btn-primary">添加配置</button>
+        </div>
+        <div class="card-body">
+          <div id="configList" class="config-list">
+            <!-- 配置列表将通过JavaScript动态生成 -->
+            <div class="empty-message">暂无配置，请添加新配置</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>代理信息</h2>
+        </div>
+        <div class="card-body">
+          <div class="info-box">
+            <h3>SillyTavern连接信息</h3>
+            <p>在SillyTavern中使用以下设置连接到此代理：</p>
+            <div class="connection-info">
+              <div class="info-item">
+                <span class="label">API类型:</span>
+                <span class="value">OpenAI</span>
+              </div>
+              <div class="info-item">
+                <span class="label">API端点:</span>
+                <span class="value" id="proxyEndpoint">http://localhost:3000/proxy</span>
+                <button class="btn btn-small btn-copy" data-copy="proxyEndpoint">复制</button>
+              </div>
+              <div class="info-item">
+                <span class="label">API密钥:</span>
+                <span class="value">任意值 (不会被使用)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>错误日志</h2>
+          <button id="clearErrorLogsBtn" class="btn btn-danger">清除日志</button>
+        </div>
+        <div class="card-body">
+          <div id="errorLogs" class="error-logs">
+            <div class="empty-message">暂无错误日志</div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- 添加/编辑配置的模态框 -->
+  <div id="configModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modalTitle">添加API配置</h2>
+        <span class="close">&times;</span>
+      </div>
+      <div class="modal-body">
+        <form id="configForm">
+          <input type="hidden" id="configId">
+          <div class="form-group">
+            <label for="configName">名称</label>
+            <input type="text" id="configName" required>
+          </div>
+          <div class="form-group">
+            <label for="configEndpoint">API端点</label>
+            <input type="url" id="configEndpoint" required placeholder="例如: https://api.openai.com/v1">
+          </div>
+          <div class="form-group">
+            <label for="configApiKey">API密钥</label>
+            <input type="password" id="configApiKey" required>
+          </div>
+          <div class="form-group">
+            <label for="configModel">默认模型</label>
+            <select id="configModel" class="form-select">
+              <option value="">请先选择API端点</option>
+            </select>
+            <div class="model-loading" id="modelLoading" style="display: none;">加载中...</div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">保存</button>
+            <button type="button" class="btn btn-secondary" id="cancelBtn">取消</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="js/script.js"></script>
+</body>
+</html>

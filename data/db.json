@@ -1,0 +1,12 @@
+{
+  "apiConfigs": [
+    {
+      "id": "1742041844627",
+      "name": "Grok",
+      "endpoint": "http://127.0.0.1:8180/v1",
+      "apiKey": "123456",
+      "model": "grok-3"
+    }
+  ],
+  "activeConfig": "1742041844627"
+}
