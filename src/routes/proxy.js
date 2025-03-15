@@ -5,6 +5,10 @@ const db = require('../db');
 
 // 代理所有OpenAI兼容的API请求
 router.all('/*', async (req, res) => {
+  // 在try块外定义变量，以便在catch块中使用
+  let config;
+  let path;
+  
   try {
     // 获取当前活跃配置
     const activeConfigId = db.get('activeConfig').value();
@@ -13,7 +17,7 @@ router.all('/*', async (req, res) => {
       return res.status(400).json({ error: '没有活跃的API配置' });
     }
 
-    const config = db.get('apiConfigs')
+    config = db.get('apiConfigs')
       .find({ id: activeConfigId })
       .value();
 
@@ -22,7 +26,7 @@ router.all('/*', async (req, res) => {
     }
 
     // 构建请求URL
-    const path = req.originalUrl.replace('/proxy', '');
+    path = req.originalUrl.replace('/proxy', '');
     const url = `${config.endpoint}${path}`;
 
     // 设置请求头
@@ -46,12 +50,12 @@ router.all('/*', async (req, res) => {
     res.status(response.status).json(response.data);
   } catch (error) {
     console.error('代理请求错误:', error.message);
-bb    
+    
     // 构建详细的错误信息
     const errorDetails = {
       timestamp: new Date().toISOString(),
-      endpoint: config.endpoint,
-      path: path,
+      endpoint: config ? config.endpoint : 'unknown',
+      path: path || 'unknown',
       method: req.method,
       error: error.message
     };
@@ -75,6 +79,7 @@ bb
         message: error.message,
         proxy_error_details: errorDetails
       });
+    }
   }
 });
 

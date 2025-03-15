@@ -92,9 +92,12 @@
           </div>
           <div class="form-group">
             <label for="configModel">默认模型</label>
-            <select id="configModel" class="form-select">
-              <option value="">请先选择API端点</option>
-            </select>
+            <div class="model-select-container">
+              <select id="configModel" class="form-select">
+                <option value="">请先选择API端点</option>
+              </select>
+              <button type="button" id="refreshModelBtn" class="btn btn-small btn-secondary">刷新</button>
+            </div>
             <div class="model-loading" id="modelLoading" style="display: none;">加载中...</div>
           </div>
           <div class="form-actions">

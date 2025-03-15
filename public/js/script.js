@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const configEndpoint = document.getElementById('configEndpoint');
   const configApiKey = document.getElementById('configApiKey');
   const configModel = document.getElementById('configModel');
+  const refreshModelBtn = document.getElementById('refreshModelBtn');
   const cancelBtn = document.getElementById('cancelBtn');
   const closeBtn = document.querySelector('.close');
   const proxyEndpoint = document.getElementById('proxyEndpoint');
@@ -33,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
   cancelBtn.addEventListener('click', () => closeModal());
   configForm.addEventListener('submit', handleFormSubmit);
   clearErrorLogsBtn.addEventListener('click', clearErrorLogs);
+  refreshModelBtn.addEventListener('click', handleRefreshModelList);
 
   // 复制按钮事件
   document.querySelectorAll('.btn-copy').forEach(btn => {
@@ -246,6 +248,21 @@ document.addEventListener('DOMContentLoaded', () => {
       .catch(() => showToast('复制失败', true));
   }
 
+  // 处理刷新模型列表
+  function handleRefreshModelList() {
+    // 如果是编辑模式，使用当前配置ID
+    if (configId.value) {
+      loadModelList(configId.value);
+    } 
+    // 否则创建临时ID
+    else if (configEndpoint.value.trim() && configApiKey.value.trim()) {
+      const tempId = 'temp_' + Date.now();
+      loadModelList(tempId);
+    } else {
+      showToast('请先填写API端点和API密钥', true);
+    }
+  }
+  
   // 处理API端点变化
   function handleEndpointChange() {
     // 只有当端点和API密钥都有值时才加载模型列表
