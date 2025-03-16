@@ -45,7 +45,8 @@ function createPackageConfig() {
       assets: [
         'public/**/*',
         'node_modules/**/*',
-        'data/**/*'
+        'data/**/*',
+        'src/**/*'
       ],
       targets: [
         'node16-win-x64'
