@@ -2,6 +2,14 @@ const express = require('express');
 const router = express.Router();
 const axios = require('axios');
 const db = require('../db');
+const fs = require('fs');
+const path = require('path');
+
+// 确保debug日志目录存在
+const debugDirectory = path.join(__dirname, '../../data/debug_logs');
+if (!fs.existsSync(debugDirectory)) {
+  fs.mkdirSync(debugDirectory, { recursive: true });
+}
 
 // 代理所有OpenAI兼容的API请求
 router.all('/*', async (req, res) => {
@@ -46,6 +54,31 @@ router.all('/*', async (req, res) => {
       maxContentLength: Infinity
     });
 
+    // 如果Debug模式开启，记录请求和响应数据
+    const debugMode = db.get('debugMode').value();
+    if (debugMode) {
+      const timestamp = new Date().toISOString().replace(/:/g, '-');
+      const logFileName = `debug_${timestamp}.json`;
+      const logFilePath = path.join(debugDirectory, logFileName);
+      
+      const logData = {
+        timestamp: timestamp,
+        request: {
+          method: req.method,
+          url: url,
+          headers: req.headers,
+          body: req.method !== 'GET' ? req.body : undefined,
+          query: req.method === 'GET' ? req.query : undefined
+        },
+        response: {
+          status: response.status,
+          data: response.data
+        }
+      };
+      
+      fs.writeFileSync(logFilePath, JSON.stringify(logData, null, 2));
+    }
+    
     // 返回响应
     res.status(response.status).json(response.data);
   } catch (error) {

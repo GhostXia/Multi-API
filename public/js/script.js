@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
   configForm.addEventListener('submit', handleFormSubmit);
   clearErrorLogsBtn.addEventListener('click', clearErrorLogs);
   refreshModelBtn.addEventListener('click', handleRefreshModelList);
+  debugModeToggle.addEventListener('change', handleDebugModeToggle);
 
   // 复制按钮事件
   document.querySelectorAll('.btn-copy').forEach(btn => {
@@ -43,6 +44,9 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // 加载错误日志
   loadErrorLogs();
+  
+  // 加载Debug模式状态
+  loadDebugModeStatus();
 
   // 加载配置列表
   async function loadConfigs() {

@@ -134,4 +134,22 @@ router.get('/active-config', (req, res) => {
   res.json({ success: true, data: config });
 });
 
+// 获取Debug模式状态
+router.get('/debug-mode', (req, res) => {
+  const debugMode = db.get('debugMode').value();
+  res.json({ success: true, enabled: debugMode });
+});
+
+// 设置Debug模式状态
+router.post('/debug-mode', (req, res) => {
+  const { enabled } = req.body;
+  
+  if (typeof enabled !== 'boolean') {
+    return res.status(400).json({ success: false, message: '参数错误，enabled必须为布尔值' });
+  }
+  
+  db.set('debugMode', enabled).write();
+  res.json({ success: true, enabled: enabled });
+});
+
 module.exports = router;

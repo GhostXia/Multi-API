@@ -14,6 +14,6 @@ const adapter = new FileSync(path.join(dbDirectory, 'db.json'));
 const db = low(adapter);
 
 // 设置默认值
-db.defaults({ apiConfigs: [], activeConfig: null }).write();
+db.defaults({ apiConfigs: [], activeConfig: null, debugMode: false }).write();
 
 module.exports = db;
