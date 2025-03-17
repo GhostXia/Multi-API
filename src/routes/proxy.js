@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 
 // 确保debug日志目录存在
-const debugDirectory = path.join(__dirname, '../../data/debug_logs');
+const debugDirectory = path.join(process.cwd(), 'data/debug_logs');
 if (!fs.existsSync(debugDirectory)) {
   fs.mkdirSync(debugDirectory, { recursive: true });
 }

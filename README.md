@@ -21,15 +21,16 @@ Multi-API is a backend service that allows users to save and switch between mult
 
 ## Usage
 
-1. Double-click `start.bat` to start the Multi-API service
+1. On Linux/macOS, run `./start.sh` to start the Multi-API service; on Windows, double-click `start.bat` or run `start.bat`
 2. Open your browser and visit http://localhost:3000 to use the application
-3. To clean privacy data, run `Clean-Privacy.exe`
+3. To clean privacy data, on Linux/macOS run `./clean-privacy.sh`; on Windows, double-click `clean-privacy.bat` or run `clean-privacy.bat`
 
 ## File Description
 
 - `Multi-API.exe`: Main program
 - `Clean-Privacy.exe`: Privacy data cleaning tool
-- `start.bat`: Startup script
+- `start.sh`: Startup script
+- `clean-privacy.sh`: Privacy data cleaning script
 - `data/db.json`: Database file
 - `backups/`: Backup directory
 

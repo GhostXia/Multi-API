@@ -3,7 +3,7 @@ const FileSync = require('lowdb/adapters/FileSync');
 const path = require('path');
 
 // 确保数据目录存在
-const dbDirectory = path.join(__dirname, '../data');
+const dbDirectory = path.join(process.cwd(), 'data');
 const fs = require('fs');
 if (!fs.existsSync(dbDirectory)) {
   fs.mkdirSync(dbDirectory, { recursive: true });

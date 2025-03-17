@@ -8,8 +8,9 @@ const path = require('path');
 const readline = require('readline');
 
 // 定义包含隐私数据的文件路径
-const DB_FILE_PATH = path.join(__dirname, 'data', 'db.json');
-const BACKUP_DIR = path.join(__dirname, 'backups');
+const DB_FILE_PATH = path.join(process.cwd(), 'data', 'db.json');
+const DEBUG_LOGS_DIR = path.join(process.cwd(), 'data', 'debug_logs');
+const BACKUP_DIR = path.join(process.cwd(), 'backups');
 const BACKUP_FILE_PATH = path.join(BACKUP_DIR, `db_backup_${Date.now()}.json`);
 
 // 创建命令行交互界面
@@ -137,6 +138,35 @@ function listBackups() {
 }
 
 /**
+ * 清理Debug日志文件
+ */
+function cleanDebugLogs() {
+  try {
+    if (fs.existsSync(DEBUG_LOGS_DIR)) {
+      const debugLogs = fs.readdirSync(DEBUG_LOGS_DIR)
+        .filter(file => file.startsWith('debug_'))
+        .map(file => path.join(DEBUG_LOGS_DIR, file));
+      
+      if (debugLogs.length > 0) {
+        debugLogs.forEach(log => {
+          fs.unlinkSync(log);
+        });
+        console.log(`✅ 已清空 ${debugLogs.length} 个Debug日志文件`);
+      } else {
+        console.log('Debug日志目录已经是空的');
+      }
+    } else {
+      console.log('Debug日志目录不存在');
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('❌ 清理Debug日志失败:', error.message);
+    return false;
+  }
+}
+
+/**
  * 清空所有数据及备份
  */
 function cleanAllData() {
@@ -145,6 +175,9 @@ function cleanAllData() {
     if (fs.existsSync(DB_FILE_PATH)) {
       createEmptyDb();
     }
+    
+    // 清空Debug日志
+    cleanDebugLogs();
     
     // 清空备份目录
     if (fs.existsSync(BACKUP_DIR)) {
@@ -178,9 +211,10 @@ function showMenu() {
   console.log('1. 备份并完全清空数据');
   console.log('2. 恢复备份');
   console.log('3. 清空全部数据及备份');
-  console.log('4. 退出');
+  console.log('4. 清理Debug日志');
+  console.log('5. 退出');
   
-  rl.question('请选择操作 [1-4]: ', (answer) => {
+  rl.question('请选择操作 [1-5]: ', (answer) => {
     switch (answer.trim()) {
       case '1':
         if (backupFile()) {
@@ -215,6 +249,10 @@ function showMenu() {
         });
         break;
       case '4':
+        cleanDebugLogs();
+        showMenu();
+        break;
+      case '5':
         console.log('再见!');
         rl.close();
         break;
@@ -229,6 +267,7 @@ function showMenu() {
 console.log('欢迎使用隐私数据清理工具');
 console.log('此工具将帮助您管理数据库文件及其备份');
 console.log('主要处理的文件: data/db.json (包含API密钥等敏感信息)');
+console.log('以及 data/debug_logs/ 目录下的Debug日志文件');
 console.log('注意: 清理操作前会自动创建备份');
 
 showMenu();

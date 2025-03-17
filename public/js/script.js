@@ -20,6 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const toast = document.getElementById('toast');
   const errorLogs = document.getElementById('errorLogs');
   const clearErrorLogsBtn = document.getElementById('clearErrorLogsBtn');
+  const debugModeToggle = document.getElementById('debugModeToggle');
+  const debugModeStatus = document.getElementById('debugModeStatus');
 
   // 设置代理端点
   const baseUrl = window.location.origin;
@@ -419,6 +421,50 @@ document.addEventListener('DOMContentLoaded', () => {
       apiErrorLogs = [];
       loadErrorLogs();
       showToast('错误日志已清除');
+    }
+  }
+  
+  // 加载Debug模式状态
+  async function loadDebugModeStatus() {
+    try {
+      const response = await fetch('/api/debug-mode');
+      const data = await response.json();
+      
+      if (data.success) {
+        debugModeToggle.checked = data.data.enabled;
+        debugModeStatus.textContent = data.data.enabled ? '已开启' : '已关闭';
+      }
+    } catch (error) {
+      console.error('加载Debug模式状态错误:', error);
+    }
+  }
+
+  // 处理Debug模式切换
+  async function handleDebugModeToggle() {
+    const enabled = debugModeToggle.checked;
+    
+    try {
+      const response = await fetch('/api/debug-mode', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ enabled })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        debugModeStatus.textContent = enabled ? '已开启' : '已关闭';
+        showToast(`Debug模式已${enabled ? '开启' : '关闭'}`);
+      } else {
+        debugModeToggle.checked = !enabled;
+        showToast(data.message || 'Debug模式切换失败', true);
+      }
+    } catch (error) {
+      console.error('切换Debug模式错误:', error);
+      debugModeToggle.checked = !enabled;
+      showToast('Debug模式切换失败', true);
     }
   }
 });

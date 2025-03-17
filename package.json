@@ -28,7 +28,6 @@
     "assets": [
       "public/**/*",
       "node_modules/**/*",
-      "data/**/*",
       "src/**/*"
     ],
     "targets": [
