@@ -1,15 +1,4 @@
 {
-  "apiConfigs": [
-    {
-      "id": "1742306679220",
-      "name": "X",
-      "endpoint": "https://api.x.ai/v1",
-      "apiKey": "xai-XbYNRVeG2Qza14IXbjWHhCvrqt78AjQhXMDbB5fj7J0w7N4cA4N3xeaf5ojIKWtvbT91YAaVB9YkNfbX",
-      "model": "grok-2-vision-1212"
-    }
-  ],
-  "activeConfig": "1742306679220",
-  "debugMode": false,
-  "debugLogs": [],
-  "switchModelInBackend": false
+  "apiConfigs": [],
+  "activeConfig": null
 }
