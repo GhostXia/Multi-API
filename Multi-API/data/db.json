@@ -1,4 +1,5 @@
 {
   "apiConfigs": [],
-  "activeConfig": null
+  "activeConfig": null,
+  "debugMode": false
 }
