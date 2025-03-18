@@ -4,7 +4,7 @@ English | [简体中文](README_ZH.md)
 
 ## Introduction
 
-Multi-API is a backend service that allows users to save and switch between multiple API endpoints and keys. Through a simple interface, you can easily manage and switch between different API configurations.
+Multi-API is a lightweight backend service that allows users to save and switch between multiple API endpoints and keys. Through a simple interface, you can easily manage and switch between different API configurations with minimal resource usage.
 
 ## Features
 
@@ -13,6 +13,7 @@ Multi-API is a backend service that allows users to save and switch between mult
 - Quick API configuration switching
 - Clean web interface
 - Data backup support
+- Lightweight and resource-efficient
 
 ## Installation
 
