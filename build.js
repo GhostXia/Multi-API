@@ -49,8 +49,8 @@ function createPackageConfig() {
       ],
       targets: [
         'node16-win-x64'
-      ],
-      outputPath: 'Multi-API'
+      ]
+      // 移除outputPath，使exe文件直接生成在根目录
     };
     
     // 添加打包脚本
@@ -66,14 +66,34 @@ function createPackageConfig() {
   }
 }
 
-// 创建输出目录
+// 创建必要目录
 function createDistDir() {
+  // 创建Multi-API主目录
   const distDir = path.join(__dirname, 'Multi-API');
   if (!fs.existsSync(distDir)) {
     fs.mkdirSync(distDir, { recursive: true });
     console.log('✅ 创建Multi-API目录成功');
-  } else {
-    console.log('✅ Multi-API目录已存在');
+  }
+
+  // 创建data目录
+  const dataDir = path.join(distDir, 'data');
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+    console.log('✅ 创建data目录成功');
+  }
+  
+  // 创建debug_logs目录
+  const debugLogsDir = path.join(dataDir, 'debug_logs');
+  if (!fs.existsSync(debugLogsDir)) {
+    fs.mkdirSync(debugLogsDir, { recursive: true });
+    console.log('✅ 创建debug_logs目录成功');
+  }
+  
+  // 创建backups目录
+  const backupsDir = path.join(distDir, 'backups');
+  if (!fs.existsSync(backupsDir)) {
+    fs.mkdirSync(backupsDir, { recursive: true });
+    console.log('✅ 创建backups目录成功');
   }
 }
 
@@ -107,27 +127,11 @@ function buildCleanTool() {
 function copyNecessaryFiles() {
   console.log('正在复制必要文件...');
   
-  // 创建data目录和debug_logs目录
-  const distDataDir = path.join(__dirname, 'Multi-API', 'data');
-  const debugLogsDir = path.join(distDataDir, 'debug_logs');
-  if (!fs.existsSync(distDataDir)) {
-    fs.mkdirSync(distDataDir, { recursive: true });
-  }
-  if (!fs.existsSync(debugLogsDir)) {
-    fs.mkdirSync(debugLogsDir, { recursive: true });
-  }
-  
-  // 创建backups目录
-  const distBackupsDir = path.join(__dirname, 'Multi-API', 'backups');
-  if (!fs.existsSync(distBackupsDir)) {
-    fs.mkdirSync(distBackupsDir, { recursive: true });
-  }
-  
   // 复制.env文件
   try {
     fs.copyFileSync(
       path.join(__dirname, '.env'),
-      path.join(__dirname, 'Multi-API', '.env')
+      path.join(__dirname, 'Multi-API', '.env.example')
     );
     console.log('✅ 复制.env文件成功');
   } catch (error) {
@@ -142,12 +146,32 @@ function copyNecessaryFiles() {
     };
     
     fs.writeFileSync(
-      path.join(distDataDir, 'db.json'),
+      path.join(__dirname, 'Multi-API', 'data', 'db.json'),
       JSON.stringify(emptyDb, null, 2)
     );
     console.log('✅ 创建空的db.json文件成功');
   } catch (error) {
     console.error('❌ 创建空的db.json文件失败:', error.message);
+  }
+
+  // 复制public文件夹
+  try {
+    const publicSrcDir = path.join(__dirname, 'public');
+    const publicDestDir = path.join(__dirname, 'Multi-API', 'public');
+    fs.cpSync(publicSrcDir, publicDestDir, { recursive: true });
+    console.log('✅ 复制public文件夹成功');
+  } catch (error) {
+    console.error('❌ 复制public文件夹失败:', error.message);
+  }
+
+  // 复制src文件夹
+  try {
+    const srcSrcDir = path.join(__dirname, 'src');
+    const srcDestDir = path.join(__dirname, 'Multi-API', 'src');
+    fs.cpSync(srcSrcDir, srcDestDir, { recursive: true });
+    console.log('✅ 复制src文件夹成功');
+  } catch (error) {
+    console.error('❌ 复制src文件夹失败:', error.message);
   }
   
   console.log('✅ 必要文件复制完成');
@@ -270,6 +294,8 @@ function createReadme() {
 - clean-privacy.bat: Windows隐私数据清理脚本
 - data/db.json: 数据库文件
 - backups/: 备份目录
+- public/: 静态资源目录
+- src/: 源代码目录
 `;
   
   try {
@@ -312,7 +338,7 @@ async function main() {
     
     console.log('\n===== 打包完成 =====');
     console.log('打包文件位于: ' + path.join(__dirname, 'Multi-API'));
-    console.log('可以将dist目录中的所有文件复制到任意位置使用');
+    console.log('可以将根目录中的可执行文件和相关脚本复制到任意位置使用');
   } else {
     console.error('❌ 打包过程中出现错误，请检查上述日志');
   }

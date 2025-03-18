@@ -16,3 +16,5 @@
 - clean-privacy.bat: Windows隐私数据清理脚本
 - data/db.json: 数据库文件
 - backups/: 备份目录
+- public/: 静态资源目录
+- src/: 源代码目录

@@ -15,7 +15,7 @@ if (!fs.existsSync(debugDirectory)) {
 router.all('/*', async (req, res) => {
   // 在try块外定义变量，以便在catch块中使用
   let config;
-  let path;
+  let requestPath;
   
   try {
     // 获取当前活跃配置
@@ -34,8 +34,8 @@ router.all('/*', async (req, res) => {
     }
 
     // 构建请求URL
-    path = req.originalUrl.replace('/proxy', '');
-    const url = `${config.endpoint}${path}`;
+    requestPath = req.originalUrl.replace('/proxy', '');
+    const url = `${config.endpoint}${requestPath}`;
 
     // 设置请求头
     const headers = {
@@ -43,44 +43,98 @@ router.all('/*', async (req, res) => {
       'Authorization': `Bearer ${config.apiKey}`
     };
 
-    // 转发请求
-    const response = await axios({
+    // 检查是否为流式请求
+    const isStreamRequest = req.headers['accept'] === 'text/event-stream' || 
+                           (req.body && req.body.stream === true);
+
+    // 设置请求配置
+    const axiosConfig = {
       method: req.method,
       url: url,
       headers: headers,
       data: req.method !== 'GET' ? req.body : undefined,
       params: req.method === 'GET' ? req.query : undefined,
       maxBodyLength: Infinity,
-      maxContentLength: Infinity
-    });
+      maxContentLength: Infinity,
+      responseType: isStreamRequest ? 'stream' : 'json'
+    };
 
-    // 如果Debug模式开启，记录请求和响应数据
-    const debugMode = db.get('debugMode').value();
-    if (debugMode) {
-      const timestamp = new Date().toISOString().replace(/:/g, '-');
-      const logFileName = `debug_${timestamp}.json`;
-      const logFilePath = path.join(debugDirectory, logFileName);
-      
-      const logData = {
-        timestamp: timestamp,
-        request: {
-          method: req.method,
-          url: url,
-          headers: req.headers,
-          body: req.method !== 'GET' ? req.body : undefined,
-          query: req.method === 'GET' ? req.query : undefined
-        },
-        response: {
-          status: response.status,
-          data: response.data
+    // 发送请求
+    const response = await axios(axiosConfig);
+
+    // 处理流式响应
+    if (isStreamRequest) {
+      // 设置流式响应头
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+
+      // 转发流式数据
+      response.data.on('data', (chunk) => {
+        res.write(chunk);
+
+        // 如果Debug模式开启，记录流式数据块
+        const debugMode = db.get('debugMode').value();
+        if (debugMode) {
+          const timestamp = new Date().toISOString().replace(/:/g, '-');
+          const logFileName = `debug_stream_${timestamp}.json`;
+          const logFilePath = path.join(debugDirectory, logFileName);
+          
+          const logData = {
+            timestamp: timestamp,
+            type: 'stream_chunk',
+            request: {
+              method: req.method,
+              url: url,
+              headers: req.headers,
+              body: req.method !== 'GET' ? req.body : undefined,
+              query: req.method === 'GET' ? req.query : undefined
+            },
+            chunk: chunk.toString()
+          };
+          
+          fs.appendFileSync(logFilePath, JSON.stringify(logData) + '\n');
         }
-      };
+      });
+
+      response.data.on('end', () => {
+        res.end();
+      });
+
+      // 错误处理
+      response.data.on('error', (error) => {
+        console.error('流式传输错误:', error);
+        res.end();
+      });
+    } else {
+      // 处理普通响应
+      const debugMode = db.get('debugMode').value();
+      if (debugMode) {
+        const timestamp = new Date().toISOString().replace(/:/g, '-');
+        const logFileName = `debug_${timestamp}.json`;
+        const logFilePath = path.join(debugDirectory, logFileName);
+        
+        const logData = {
+          timestamp: timestamp,
+          request: {
+            method: req.method,
+            url: url,
+            headers: req.headers,
+            body: req.method !== 'GET' ? req.body : undefined,
+            query: req.method === 'GET' ? req.query : undefined
+          },
+          response: {
+            status: response.status,
+            data: response.data
+          }
+        };
+        
+        fs.writeFileSync(logFilePath, JSON.stringify(logData, null, 2));
+        db.get('debugLogs').push(logData).write();
+      }
       
-      fs.writeFileSync(logFilePath, JSON.stringify(logData, null, 2));
+      res.status(response.status).json(response.data);
     }
-    
-    // 返回响应
-    res.status(response.status).json(response.data);
   } catch (error) {
     console.error('代理请求错误:', error.message);
     
@@ -88,7 +142,7 @@ router.all('/*', async (req, res) => {
     const errorDetails = {
       timestamp: new Date().toISOString(),
       endpoint: config ? config.endpoint : 'unknown',
-      path: path || 'unknown',
+      path: requestPath || 'unknown',
       method: req.method,
       error: error.message
     };
