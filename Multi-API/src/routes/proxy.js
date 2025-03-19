@@ -11,11 +11,6 @@ if (!fs.existsSync(debugDirectory)) {
   fs.mkdirSync(debugDirectory, { recursive: true });
 }
 
-// 检查是否为模型列表请求
-function isModelsRequest(req) {
-  return req.originalUrl.endsWith('/models');
-}
-
 // 代理所有OpenAI兼容的API请求
 router.all('/*', async (req, res) => {
   // 在try块外定义变量，以便在catch块中使用
@@ -38,30 +33,9 @@ router.all('/*', async (req, res) => {
       return res.status(400).json({ error: '活跃配置不存在' });
     }
 
-    // 检查是否为模型列表请求
-    if (isModelsRequest(req)) {
-      return res.json({
-        "object": "list",
-        "data": [{
-          "id": "请在后端执行全部操作",
-          "object": "model",
-          "created": Date.now(),
-          "owned_by": "system",
-          "permission": [],
-          "root": "请在后端执行全部操作",
-          "parent": null
-        }]
-      });
-    }
-
     // 构建请求URL
     requestPath = req.originalUrl.replace('/proxy', '');
     const url = `${config.endpoint}${requestPath}`;
-
-    // 检查并修改请求体中的模型名称
-    if (req.body && req.body.model && config.model) {
-      req.body.model = config.model;
-    }
 
     // 设置请求头
     const headers = {
