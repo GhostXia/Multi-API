@@ -15,6 +15,8 @@ Multi-API is a lightweight backend service that allows users to save and switch 
 - Data backup support
 - Lightweight and resource-efficient
 - Cross-platform support (Windows, Linux, macOS)
+- Multilingual interface (English and Chinese)
+- Debug mode for API interaction logging
 
 ## System Requirements
 

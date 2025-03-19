@@ -16,6 +16,8 @@ Multi-API 是一个轻量级的后端服务，允许用户保存和切换多个A
 - 轻量级且资源占用少
 - 跨平台支持（Windows、Linux、macOS）
 - SillyTavern友好，无需在酒馆界面配置API
+- 多语言界面（中文和英文）
+- Debug模式用于API交互日志记录
 
 ## 系统要求
 
