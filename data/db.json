@@ -1,4 +1,7 @@
 {
   "apiConfigs": [],
-  "activeConfig": null
+  "activeConfig": null,
+  "debugMode": false,
+  "debugLogs": [],
+  "language": "en"
 }

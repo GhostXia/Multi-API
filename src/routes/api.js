@@ -152,4 +152,22 @@ router.post('/debug-mode', (req, res) => {
   res.json({ success: true, enabled: enabled });
 });
 
+// 获取当前语言设置
+router.get('/language', (req, res) => {
+  const language = db.get('language').value() || 'zh';
+  res.json({ success: true, language: language });
+});
+
+// 设置语言
+router.post('/language', (req, res) => {
+  const { language } = req.body;
+  
+  if (typeof language !== 'string' || !['zh', 'en'].includes(language)) {
+    return res.status(400).json({ success: false, message: '参数错误，language必须为zh或en' });
+  }
+  
+  db.set('language', language).write();
+  res.json({ success: true, language: language });
+});
+
 module.exports = router;
