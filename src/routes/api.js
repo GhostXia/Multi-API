@@ -143,9 +143,53 @@ router.get('/debug-mode', (req, res) => {
 // 设置Debug模式状态
 router.post('/debug-mode', (req, res) => {
   const { enabled } = req.body;
+  const fs = require('fs');
+  const path = require('path');
   
   if (typeof enabled !== 'boolean') {
     return res.status(400).json({ success: false, message: '参数错误，enabled必须为布尔值' });
+  }
+  
+  // 获取proxy.js模块
+  const proxyModule = require('./proxy');
+  
+  if (enabled) {
+    // 开启Debug模式时，创建新的会话日志文件
+    const debugDirectory = path.join(process.cwd(), 'data/debug_logs');
+    if (!fs.existsSync(debugDirectory)) {
+      fs.mkdirSync(debugDirectory, { recursive: true });
+    }
+    
+    // 设置会话开始时间
+    proxyModule.debugSessionStartTime = new Date();
+    const timestamp = proxyModule.debugSessionStartTime.toISOString().replace(/:/g, '-');
+    
+    // 创建会话日志文件
+    proxyModule.currentDebugLogFile = path.join(debugDirectory, `debug_session_${timestamp}.json`);
+    
+    // 写入会话开始记录
+    const sessionStartData = {
+      session_start: timestamp,
+      type: 'session_start',
+      message: 'Debug模式已开启'
+    };
+    
+    fs.writeFileSync(proxyModule.currentDebugLogFile, JSON.stringify(sessionStartData, null, 2) + '\n');
+  } else if (proxyModule.currentDebugLogFile) {
+    // 关闭Debug模式时，写入会话结束记录
+    const endTimestamp = new Date().toISOString();
+    const sessionEndData = {
+      session_end: endTimestamp,
+      type: 'session_end',
+      message: 'Debug模式已关闭',
+      duration: `${Math.round((new Date() - proxyModule.debugSessionStartTime) / 1000)}秒`
+    };
+    
+    fs.appendFileSync(proxyModule.currentDebugLogFile, JSON.stringify(sessionEndData, null, 2) + '\n');
+    
+    // 重置会话文件路径和开始时间
+    proxyModule.currentDebugLogFile = null;
+    proxyModule.debugSessionStartTime = null;
   }
   
   db.set('debugMode', enabled).write();

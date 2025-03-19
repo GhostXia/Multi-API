@@ -4,7 +4,8 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const db = require('./db');
 const apiRoutes = require('./routes/api');
-const proxyRoutes = require('./routes/proxy');
+const proxyModule = require('./routes/proxy');
+const proxyRoutes = proxyModule.router;
 const modelsRoutes = require('./routes/models');
 
 const app = express();
