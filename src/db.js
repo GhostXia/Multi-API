@@ -18,7 +18,8 @@ db.defaults({
   apiConfigs: [],
   activeConfig: null,
   debugMode: false,
-  debugLogs: []
+  debugLogs: [],
+  language: 'zh' // 默认语言设置为中文
 }).write();
 
 module.exports = db;

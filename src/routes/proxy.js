@@ -11,6 +11,11 @@ if (!fs.existsSync(debugDirectory)) {
   fs.mkdirSync(debugDirectory, { recursive: true });
 }
 
+// 当前debug会话的日志文件路径
+let currentDebugLogFile = null;
+// 当前debug会话的开始时间
+let debugSessionStartTime = null;
+
 // 检查是否为模型列表请求
 function isModelsRequest(req) {
   return req.originalUrl.endsWith('/models');
@@ -101,10 +106,8 @@ router.all('/*', async (req, res) => {
 
         // 如果Debug模式开启，记录流式数据块
         const debugMode = db.get('debugMode').value();
-        if (debugMode) {
-          const timestamp = new Date().toISOString().replace(/:/g, '-');
-          const logFileName = `debug_stream_${timestamp}.json`;
-          const logFilePath = path.join(debugDirectory, logFileName);
+        if (debugMode && currentDebugLogFile) {
+          const timestamp = new Date().toISOString();
           
           const logData = {
             timestamp: timestamp,
@@ -119,7 +122,7 @@ router.all('/*', async (req, res) => {
             chunk: chunk.toString()
           };
           
-          fs.appendFileSync(logFilePath, JSON.stringify(logData) + '\n');
+          fs.appendFileSync(currentDebugLogFile, JSON.stringify(logData) + '\n');
         }
       });
 
@@ -135,13 +138,12 @@ router.all('/*', async (req, res) => {
     } else {
       // 处理普通响应
       const debugMode = db.get('debugMode').value();
-      if (debugMode) {
-        const timestamp = new Date().toISOString().replace(/:/g, '-');
-        const logFileName = `debug_${timestamp}.json`;
-        const logFilePath = path.join(debugDirectory, logFileName);
+      if (debugMode && currentDebugLogFile) {
+        const timestamp = new Date().toISOString();
         
         const logData = {
           timestamp: timestamp,
+          type: 'request_response',
           request: {
             method: req.method,
             url: url,
@@ -155,7 +157,7 @@ router.all('/*', async (req, res) => {
           }
         };
         
-        fs.writeFileSync(logFilePath, JSON.stringify(logData, null, 2));
+        fs.appendFileSync(currentDebugLogFile, JSON.stringify(logData, null, 2) + '\n');
         db.get('debugLogs').push(logData).write();
       }
       
@@ -196,4 +198,9 @@ router.all('/*', async (req, res) => {
   }
 });
 
-module.exports = router;
+// 导出路由和debug会话变量
+module.exports = {
+  router,
+  currentDebugLogFile,
+  debugSessionStartTime
+};
