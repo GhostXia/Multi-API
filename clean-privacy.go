@@ -82,47 +82,44 @@ func cleanDbFile() bool {
 	// 获取应用配置
 	cfg := config.GetConfig()
 	
-			// 读取数据库文件
-		file, err := os.Open(cfg.DBPath)
-		if err != nil {
-			fmt.Printf("❌ 打开数据库文件失败: %s\n", err.Error())
-			return false
-		}
-		defer file.Close()
-		
-		// 解析JSON数据
-		var dbData models.DBData
-		decoder := json.NewDecoder(file)
-		if err := decoder.Decode(&dbData); err != nil {
-			fmt.Printf("❌ 解析数据库文件失败: %s\n", err.Error())
-			return false
-		}
-		
-		// 清理API配置中的敏感信息
-		for i := range dbData.APIConfigs {
-			dbData.APIConfigs[i].APIKey = "********" // 替换API密钥为占位符
-		}
-		
-		// 写入清理后的数据
-		outFile, err := os.Create(cfg.DBPath)
-		if err != nil {
-			fmt.Printf("❌ 创建输出文件失败: %s\n", err.Error())
-			return false
-		}
-		defer outFile.Close()
-		
-		encoder := json.NewEncoder(outFile)
-		encoder.SetIndent("", "  ")
-		if err := encoder.Encode(dbData); err != nil {
-			fmt.Printf("❌ 写入数据失败: %s\n", err.Error())
-			return false
-		}
-		
-		fmt.Println("✅ 数据库文件中的隐私信息已清理")
-		return true
-			fmt.Printf("❌ 清理数据库文件失败: %s\n", err.Error())
+	// 读取数据库文件
+	file, err := os.Open(cfg.DBPath)
+	if err != nil {
+		fmt.Printf("❌ 打开数据库文件失败: %s\n", err.Error())
 		return false
 	}
+	defer file.Close()
+	
+	// 解析JSON数据
+	var dbData models.DBData
+	decoder := json.NewDecoder(file)
+	if err := decoder.Decode(&dbData); err != nil {
+		fmt.Printf("❌ 解析数据库文件失败: %s\n", err.Error())
+		return false
+	}
+	
+	// 清理API配置中的敏感信息
+	for i := range dbData.APIConfigs {
+		dbData.APIConfigs[i].APIKey = "********" // 替换API密钥为占位符
+	}
+	
+	// 写入清理后的数据
+	outFile, err := os.Create(cfg.DBPath)
+	if err != nil {
+		fmt.Printf("❌ 创建输出文件失败: %s\n", err.Error())
+		return false
+	}
+	defer outFile.Close()
+	
+	encoder := json.NewEncoder(outFile)
+	encoder.SetIndent("", "  ")
+	if err := encoder.Encode(dbData); err != nil {
+		fmt.Printf("❌ 写入数据失败: %s\n", err.Error())
+		return false
+	}
+	
+	fmt.Println("✅ 数据库文件中的隐私信息已清理")
+	return true
 }
 
 // 创建空的数据库结构
@@ -130,36 +127,6 @@ func createEmptyDb() bool {
 	// 获取应用配置
 	cfg := config.GetConfig()
 	
-			// 创建空的数据结构
-		emptyDb := models.DBData{
-			APIConfigs:   []models.APIConfig{},
-			ActiveConfig: "",
-			DebugMode:    false,
-			DebugLogs:    []models.DebugLog{},
-			Language:     "zh", // 默认语言设置为中文
-		}
-		
-		// 写入文件
-		file, err := os.Create(cfg.DBPath)
-		if err != nil {
-			fmt.Printf("❌ 创建数据库文件失败: %s\n", err.Error())
-			return false
-		}
-		defer file.Close()
-		
-		encoder := json.NewEncoder(file)
-		encoder.SetIndent("", "  ")
-		if err := encoder.Encode(emptyDb); err != nil {
-			fmt.Printf("❌ 写入数据失败: %s\n", err.Error())
-			return false
-		}
-		
-		fmt.Println("✅ 已创建空的数据库结构")
-		return true
-			fmt.Printf("❌ 创建空数据库失败: %s\n", err.Error())
-		return false
-	}
-
 	// 创建空的数据结构
 	emptyDb := models.DBData{
 		APIConfigs:   []models.APIConfig{},
@@ -168,7 +135,7 @@ func createEmptyDb() bool {
 		DebugLogs:    []models.DebugLog{},
 		Language:     "zh", // 默认语言设置为中文
 	}
-
+	
 	// 写入文件
 	file, err := os.Create(cfg.DBPath)
 	if err != nil {
@@ -176,16 +143,17 @@ func createEmptyDb() bool {
 		return false
 	}
 	defer file.Close()
-
+	
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
 	if err := encoder.Encode(emptyDb); err != nil {
 		fmt.Printf("❌ 写入数据失败: %s\n", err.Error())
 		return false
 	}
-
+	
 	fmt.Println("✅ 已创建空的数据库结构")
 	return true
+}
 }
 
 // 列出所有备份文件
@@ -230,36 +198,20 @@ func listBackups() []string {
 func cleanDebugLogs() bool {
 	// 获取应用配置
 	cfg := config.GetConfig()
-
-	if _, err := os.Stat(cfg.DebugLogsDir); os.IsNotExist(err) {
-		fmt.Println("Debug日志目录不存在")
-		return true
-	}
-
-	files, err := os.ReadDir(cfg.DebugLogsDir)
-	if err != nil {
-		fmt.Printf("❌ 清理Debug日志失败: %s\n", err.Error())
+	
+	// 清空调试日志目录
+	if err := os.RemoveAll(cfg.DebugLogsDir); err != nil {
+		fmt.Printf("❌ 清理调试日志目录失败: %s\n", err.Error())
 		return false
 	}
-
-	count := 0
-	for _, file := range files {
-		if strings.HasPrefix(file.Name(), "debug_") {
-			logPath := filepath.Join(cfg.DebugLogsDir, file.Name())
-			if err := os.Remove(logPath); err != nil {
-				fmt.Printf("❌ 删除日志文件失败: %s\n", err.Error())
-				return false
-			}
-			count++
-		}
+	
+	// 重新创建目录
+	if err := os.MkdirAll(cfg.DebugLogsDir, 0755); err != nil {
+		fmt.Printf("❌ 创建调试日志目录失败: %s\n", err.Error())
+		return false
 	}
-
-	if count > 0 {
-		fmt.Printf("✅ 已清空 %d 个Debug日志文件\n", count)
-	} else {
-		fmt.Println("Debug日志目录已经是空的")
-	}
-
+	
+	fmt.Println("✅ 调试日志已清理完成")
 	return true
 }
 
@@ -398,24 +350,7 @@ func restoreBackup(backupPath string) bool {
 		fmt.Printf("❌ 备份文件不存在: %s\n", backupPath)
 		return false
 	}
-}
-			fmt.Println("Debug日志目录不存在")
-			return true
-		}
-		
-		// 读取调试日志目录中的文件
-		files, err := os.ReadDir(cfg.DebugLogsDir)
-		if err != nil {
-			fmt.Printf("❌ 读取Debug日志目录失败: %s\n", err.Error())
-			return false
-		}
-		
-		// 过滤出调试日志文件并删除
-		count := 0
-		for _, file := range files {
-			if !file.IsDir() && strings.HasPrefix(file.Name(), "debug_") {
-				filePath := filepath.Join(cfg.DebugLogsDir, file.Name())
-				if err := os.Remove(filePath); err != nil {
+}				if err := os.Remove(filePath); err != nil {
 					fmt.Printf("❌ 删除文件失败 %s: %s\n", filePath, err.Error())
 				} else {
 					count++
