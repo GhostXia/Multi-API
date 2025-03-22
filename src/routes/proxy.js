@@ -178,13 +178,38 @@ router.all('/*', async (req, res) => {
     // 如果有响应错误，添加响应信息
     if (error.response) {
       errorDetails.status = error.response.status;
-      errorDetails.responseData = error.response.data;
+      
+      // 使用自定义replacer函数处理可能的循环引用
+      const safeReplacer = (key, value) => {
+        // 排除可能导致循环引用的对象，如Socket、TLSSocket等
+        if (value && typeof value === 'object' && 
+            (value.constructor && ['Socket', 'TLSSocket'].includes(value.constructor.name))) {
+          return '[Socket Object]';
+        }
+        return value;
+      };
+      
+      // 安全地获取响应数据
+      try {
+        errorDetails.responseData = JSON.parse(JSON.stringify(error.response.data, safeReplacer));
+      } catch (jsonError) {
+        errorDetails.responseData = { error: '无法序列化响应数据', message: jsonError.message };
+      }
       
       // 返回错误响应，并添加额外的错误详情字段
-      const responseData = {
-        ...error.response.data,
-        proxy_error_details: errorDetails
-      };
+      let responseData;
+      try {
+        responseData = {
+          ...JSON.parse(JSON.stringify(error.response.data, safeReplacer)),
+          proxy_error_details: errorDetails
+        };
+      } catch (jsonError) {
+        responseData = {
+          error: '代理请求失败',
+          message: error.message,
+          proxy_error_details: errorDetails
+        };
+      }
       
       res.status(error.response.status).json(responseData);
     } else {
