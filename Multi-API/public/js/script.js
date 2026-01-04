@@ -1,9 +1,15 @@
 document.addEventListener('DOMContentLoaded', () => {
+  // 当前语言
+  let currentLanguage = 'zh';
+  
+  // 加载语言设置
+  loadLanguageSetting();
   // 初始化错误日志存储 - 使用内存变量而非localStorage
   let apiErrorLogs = [];
   
   // 元素引用
   const configList = document.getElementById('configList');
+  const languageButtons = document.querySelectorAll('.language-selector button');
   const addConfigBtn = document.getElementById('addConfigBtn');
   const configModal = document.getElementById('configModal');
   const modalTitle = document.getElementById('modalTitle');
@@ -38,6 +44,14 @@ document.addEventListener('DOMContentLoaded', () => {
   clearErrorLogsBtn.addEventListener('click', clearErrorLogs);
   refreshModelBtn.addEventListener('click', handleRefreshModelList);
   debugModeToggle.addEventListener('change', handleDebugModeToggle);
+  
+  // 语言切换按钮事件
+  languageButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const lang = btn.dataset.lang;
+      changeLanguage(lang);
+    });
+  });
 
   // 复制按钮事件
   document.querySelectorAll('.btn-copy').forEach(btn => {
@@ -49,6 +63,9 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // 加载Debug模式状态
   loadDebugModeStatus();
+  
+  // 应用当前语言
+  applyLanguage(currentLanguage);
 
   // 加载配置列表
   async function loadConfigs() {
@@ -70,11 +87,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // 渲染配置列表
   function renderConfigList(configs) {
     if (!configs || configs.length === 0) {
-      configList.innerHTML = '<div class="empty-message">暂无配置，请添加新配置</div>';
+      const res = window.i18n[currentLanguage];
+      configList.innerHTML = `<div class="empty-message">${res.noConfig}</div>`;
       return;
     }
 
     configList.innerHTML = '';
+    const res = window.i18n[currentLanguage];
+    
     configs.forEach(config => {
       const configItem = document.createElement('div');
       configItem.className = `config-item ${config.isActive ? 'active' : ''}`;
@@ -84,9 +104,9 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="config-endpoint">${config.endpoint}</div>
         </div>
         <div class="config-actions">
-          ${!config.isActive ? `<button class="btn btn-small btn-primary activate-btn" data-id="${config.id}">激活</button>` : ''}
-          <button class="btn btn-small btn-secondary edit-btn" data-id="${config.id}">编辑</button>
-          <button class="btn btn-small btn-danger delete-btn" data-id="${config.id}">删除</button>
+          ${!config.isActive ? `<button class="btn btn-small btn-primary activate-btn" data-id="${config.id}">${res.activate}</button>` : ''}
+          <button class="btn btn-small btn-secondary edit-btn" data-id="${config.id}">${res.edit}</button>
+          <button class="btn btn-small btn-danger delete-btn" data-id="${config.id}">${res.delete}</button>
         </div>
       `;
       configList.appendChild(configItem);
@@ -224,7 +244,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // 处理删除配置
   async function handleDelete(e) {
     const id = e.target.dataset.id;
-    if (!confirm('确定要删除此配置吗？')) return;
+    const res = window.i18n[currentLanguage];
+    if (!confirm(res.confirmDelete)) return;
 
     try {
       const response = await fetch(`/api/configs/${id}`, {
@@ -417,10 +438,11 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // 清除错误日志
   function clearErrorLogs() {
-    if (confirm('确定要清除所有错误日志吗？')) {
+    const res = window.i18n[currentLanguage];
+    if (confirm(res.confirmClearLogs)) {
       apiErrorLogs = [];
       loadErrorLogs();
-      showToast('错误日志已清除');
+      showToast(res.logsCleared);
     }
   }
   
@@ -439,6 +461,128 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // 加载语言设置
+  async function loadLanguageSetting() {
+    try {
+      const response = await fetch('/api/language');
+      const data = await response.json();
+      
+      if (data.success) {
+        currentLanguage = data.language;
+        applyLanguage(currentLanguage);
+      }
+    } catch (error) {
+      console.error('加载语言设置错误:', error);
+    }
+  }
+  
+  // 切换语言
+  async function changeLanguage(lang) {
+    if (lang === currentLanguage) return;
+    
+    try {
+      const response = await fetch('/api/language', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ language: lang })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        currentLanguage = lang;
+        applyLanguage(currentLanguage);
+      }
+    } catch (error) {
+      console.error('切换语言错误:', error);
+    }
+  }
+  
+  // 应用语言
+  function applyLanguage(lang) {
+    // 更新语言按钮状态
+    languageButtons.forEach(btn => {
+      if (btn.dataset.lang === lang) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+    
+    // 获取语言资源
+    const res = window.i18n[lang];
+    if (!res) return;
+    
+    // 更新页面标题
+    document.title = res.title;
+    document.getElementById('pageTitle').textContent = res.title;
+    document.getElementById('pageSubtitle').textContent = res.subtitle;
+    
+    // 更新卡片标题
+    document.querySelectorAll('.card-header h2').forEach((el, index) => {
+      if (index === 0) el.textContent = res.apiConfig;
+      if (index === 1) el.textContent = res.proxyInfo;
+      if (index === 2) el.textContent = res.errorLogs;
+    });
+    
+    // 更新按钮文本
+    addConfigBtn.textContent = res.addConfig;
+    clearErrorLogsBtn.textContent = res.clearLogs;
+    
+    // 更新连接信息
+    document.querySelector('.info-box h3').textContent = res.connectionInfo;
+    document.querySelector('.info-box p').textContent = res.connectionDesc;
+    document.querySelectorAll('.info-item .label')[0].textContent = res.apiType;
+    document.querySelectorAll('.info-item .label')[1].textContent = res.apiEndpoint;
+    document.querySelectorAll('.info-item .label')[2].textContent = res.apiKeyDesc;
+    document.querySelectorAll('.info-item .value')[2].textContent = res.apiKeyValue;
+    
+    // 更新Debug模式文本
+    document.querySelectorAll('.info-box h3')[1].textContent = res.debugMode;
+    document.querySelectorAll('.info-box p')[1].textContent = res.debugModeDesc;
+    debugModeStatus.textContent = debugModeToggle.checked ? res.enabled : res.disabled;
+    
+    // 更新复制按钮
+    document.querySelector('.btn-copy').textContent = res.copy;
+    
+    // 更新模态框
+    modalTitle.textContent = configId.value ? res.editApiConfig : res.addApiConfig;
+    document.querySelector('label[for="configName"]').textContent = res.name;
+    document.querySelector('label[for="configEndpoint"]').textContent = res.endpoint;
+    document.querySelector('label[for="configApiKey"]').textContent = res.apiKey;
+    document.querySelector('label[for="configModel"]').textContent = res.defaultModel;
+    document.querySelector('button[type="submit"]').textContent = res.save;
+    cancelBtn.textContent = res.cancel;
+    refreshModelBtn.textContent = res.refresh;
+    
+    // 更新空消息
+    document.querySelectorAll('.empty-message').forEach(el => {
+      if (el.parentElement.id === 'configList') el.textContent = res.noConfig;
+      if (el.parentElement.id === 'errorLogs') el.textContent = res.noErrorLogs;
+    });
+    
+    // 更新选择模型提示
+    const modelOptions = configModel.querySelectorAll('option');
+    if (modelOptions.length > 0) {
+      if (modelOptions[0].value === '') {
+        if (modelOptions[0].textContent === '请先选择API端点') {
+          modelOptions[0].textContent = res.selectEndpoint;
+        } else if (modelOptions[0].textContent === '请选择默认模型') {
+          modelOptions[0].textContent = res.selectModel;
+        } else if (modelOptions[0].textContent === '加载中...') {
+          modelOptions[0].textContent = res.loading;
+        } else if (modelOptions[0].textContent === '无法加载模型列表') {
+          modelOptions[0].textContent = res.loadModelsFailed;
+        }
+      }
+    }
+    
+    // 更新加载中文本
+    document.getElementById('modelLoading').textContent = res.loading;
+  }
+  
   // 处理Debug模式切换
   async function handleDebugModeToggle() {
     const enabled = debugModeToggle.checked;
@@ -455,8 +599,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await response.json();
       
       if (data.success) {
-        debugModeStatus.textContent = enabled ? '已开启' : '已关闭';
-        showToast(`Debug模式已${enabled ? '开启' : '关闭'}`);
+        const res = window.i18n[currentLanguage];
+        debugModeStatus.textContent = enabled ? res.enabled : res.disabled;
+        showToast(enabled ? res.debugModeOn : res.debugModeOff);
       } else {
         debugModeToggle.checked = !enabled;
         showToast(data.message || 'Debug模式切换失败', true);

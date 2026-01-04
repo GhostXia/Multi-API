@@ -48,7 +48,7 @@ function createPackageConfig() {
         'src/**/*'
       ],
       targets: [
-        'node16-win-x64'
+        'node18-win-x64'
       ]
       // 移除outputPath，使exe文件直接生成在根目录
     };
@@ -101,7 +101,7 @@ function createDistDir() {
 function buildMainApp() {
   console.log('正在打包主程序...');
   try {
-    execSync('npx pkg . --target node16-win-x64 --output Multi-API/Multi-API.exe', { stdio: 'inherit' });
+    execSync('npx pkg . --target node18-win-x64 --output Multi-API/Multi-API.exe', { stdio: 'inherit' });
     console.log('✅ 主程序打包成功');
     return true;
   } catch (error) {
@@ -114,7 +114,7 @@ function buildMainApp() {
 function buildCleanTool() {
   console.log('正在打包清理工具...');
   try {
-    execSync('npx pkg clean-privacy.js --target node16-win-x64 --output Multi-API/Clean-Privacy.exe', { stdio: 'inherit' });
+    execSync('npx pkg clean-privacy.js --target node18-win-x64 --output Multi-API/Clean-Privacy.exe', { stdio: 'inherit' });
     console.log('✅ 清理工具打包成功');
     return true;
   } catch (error) {
@@ -142,7 +142,10 @@ function copyNecessaryFiles() {
   try {
     const emptyDb = {
       apiConfigs: [],
-      activeConfig: null
+      activeConfig: null,
+      debugMode: false,
+      debugLogs: [],
+      language: 'zh'
     };
     
     fs.writeFileSync(

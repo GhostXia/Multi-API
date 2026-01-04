@@ -9,8 +9,16 @@
 <body>
   <div class="container">
     <header>
-      <h1>多API管理器</h1>
-      <p>管理和切换您的API端点和密钥</p>
+      <div class="header-content">
+        <div>
+          <h1 id="pageTitle">多API管理器</h1>
+          <p id="pageSubtitle">管理和切换您的API端点和密钥</p>
+        </div>
+        <div class="language-selector">
+          <button class="btn btn-small btn-secondary" data-lang="zh">中文</button>
+          <button class="btn btn-small btn-secondary" data-lang="en">English</button>
+        </div>
+      </div>
     </header>
 
     <main>
@@ -123,6 +131,7 @@
 
   <div id="toast" class="toast"></div>
 
+  <script src="js/i18n.js"></script>
   <script src="js/script.js"></script>
 </body>
 </html>

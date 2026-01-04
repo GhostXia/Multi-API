@@ -21,6 +21,7 @@ try {
       apiConfigs: [],
       activeConfig: null,
       debugMode: false,
+      debugLogs: [],
       language: 'zh'
     };
     fs.writeFileSync(dbPath, JSON.stringify(emptyDb, null, 2));
@@ -33,15 +34,8 @@ try {
 // 清理调试日志
 try {
   if (fs.existsSync(debugLogsDir)) {
-    // 读取目录中的所有文件
-    const files = fs.readdirSync(debugLogsDir);
-    
-    // 删除所有日志文件
-    files.forEach(file => {
-      const filePath = path.join(debugLogsDir, file);
-      fs.unlinkSync(filePath);
-    });
-    
+    fs.rmSync(debugLogsDir, { recursive: true, force: true });
+    fs.mkdirSync(debugLogsDir, { recursive: true });
     console.log('✅ 调试日志清理完成');
   }
 } catch (error) {
