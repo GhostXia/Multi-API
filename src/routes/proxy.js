@@ -2,19 +2,7 @@ const express = require('express');
 const router = express.Router();
 const axios = require('axios');
 const db = require('../db');
-const fs = require('fs');
-const path = require('path');
-
-// 确保debug日志目录存在
-const debugDirectory = path.join(process.cwd(), 'data/debug_logs');
-if (!fs.existsSync(debugDirectory)) {
-  fs.mkdirSync(debugDirectory, { recursive: true });
-}
-
-// 当前debug会话的日志文件路径
-let currentDebugLogFile = null;
-// 当前debug会话的开始时间
-let debugSessionStartTime = null;
+const DebugLogger = require('../utils/debugLogger');
 
 // 检查是否为模型列表请求
 function isModelsRequest(req) {
@@ -22,22 +10,35 @@ function isModelsRequest(req) {
 }
 
 // 代理所有OpenAI兼容的API请求
-router.all('/*', async (req, res) => {
+router.use('/', async (req, res, next) => {
   // 在try块外定义变量，以便在catch块中使用
   let config;
   let requestPath;
   
   try {
-    // 获取当前活跃配置
-    const activeConfigId = db.get('activeConfig').value();
-    
-    if (!activeConfigId) {
-      return res.status(400).json({ error: '没有活跃的API配置' });
-    }
+      // 获取当前活跃配置
+      const activeConfigId = db.get('activeConfig').value();
+      
+      if (!activeConfigId) {
+        return res.status(400).json({ error: '没有活跃的API配置' });
+      }
 
-    config = db.get('apiConfigs')
-      .find({ id: activeConfigId })
-      .value();
+      // 从缓存获取配置
+      const cache = require('../utils/cache');
+      const cacheKey = `config_${activeConfigId}`;
+      
+      if (cache.has(cacheKey)) {
+        config = cache.get(cacheKey);
+      } else {
+        config = db.get('apiConfigs')
+          .find({ id: activeConfigId })
+          .value();
+        
+        // 缓存配置
+        if (config) {
+          cache.set(cacheKey, config);
+        }
+      }
 
     if (!config) {
       return res.status(400).json({ error: '活跃配置不存在' });
@@ -106,23 +107,8 @@ router.all('/*', async (req, res) => {
 
         // 如果Debug模式开启，记录流式数据块
         const debugMode = db.get('debugMode').value();
-        if (debugMode && currentDebugLogFile) {
-          const timestamp = new Date().toISOString();
-          
-          const logData = {
-            timestamp: timestamp,
-            type: 'stream_chunk',
-            request: {
-              method: req.method,
-              url: url,
-              headers: req.headers,
-              body: req.method !== 'GET' ? req.body : undefined,
-              query: req.method === 'GET' ? req.query : undefined
-            },
-            chunk: chunk.toString()
-          };
-          
-          fs.appendFileSync(currentDebugLogFile, JSON.stringify(logData) + '\n');
+        if (debugMode) {
+          DebugLogger.logStreamChunk(req, url, chunk);
         }
       });
 
@@ -138,27 +124,8 @@ router.all('/*', async (req, res) => {
     } else {
       // 处理普通响应
       const debugMode = db.get('debugMode').value();
-      if (debugMode && currentDebugLogFile) {
-        const timestamp = new Date().toISOString();
-        
-        const logData = {
-          timestamp: timestamp,
-          type: 'request_response',
-          request: {
-            method: req.method,
-            url: url,
-            headers: req.headers,
-            body: req.method !== 'GET' ? req.body : undefined,
-            query: req.method === 'GET' ? req.query : undefined
-          },
-          response: {
-            status: response.status,
-            data: response.data
-          }
-        };
-        
-        fs.appendFileSync(currentDebugLogFile, JSON.stringify(logData, null, 2) + '\n');
-        db.get('debugLogs').push(logData).write();
+      if (debugMode) {
+        DebugLogger.logRequestResponse(req, res, url, response);
       }
       
       res.status(response.status).json(response.data);
@@ -223,9 +190,7 @@ router.all('/*', async (req, res) => {
   }
 });
 
-// 导出路由和debug会话变量
+// 导出路由
 module.exports = {
-  router,
-  currentDebugLogFile,
-  debugSessionStartTime
+  router
 };

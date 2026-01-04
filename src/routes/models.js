@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const axios = require('axios');
 const db = require('../db');
+const response = require('../utils/response');
 
 // 获取指定API端点支持的模型列表
 router.get('/:configId', async (req, res) => {
@@ -14,7 +15,7 @@ router.get('/:configId', async (req, res) => {
       .value();
 
     if (!config) {
-      return res.status(404).json({ success: false, message: '未找到配置' });
+      return response.notFound(res, '未找到配置');
     }
 
     // 构建请求URL
@@ -40,23 +41,15 @@ router.get('/:configId', async (req, res) => {
     }));
 
     // 返回模型列表
-    res.json({ success: true, data: models });
+    response.success(res, models, '获取模型列表成功');
   } catch (error) {
     console.error('获取模型列表错误:', error.message);
     
     // 返回错误响应
     if (error.response) {
-      res.status(error.response.status).json({
-        success: false, 
-        message: '获取模型列表失败', 
-        error: error.response.data
-      });
+      response.error(res, '获取模型列表失败', error.response.data, error.response.status);
     } else {
-      res.status(500).json({ 
-        success: false, 
-        message: '获取模型列表失败', 
-        error: error.message 
-      });
+      response.error(res, '获取模型列表失败', error.message, 500);
     }
   }
 });
