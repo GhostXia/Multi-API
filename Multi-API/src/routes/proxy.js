@@ -2,14 +2,7 @@ const express = require('express');
 const router = express.Router();
 const axios = require('axios');
 const db = require('../db');
-const fs = require('fs');
-const path = require('path');
-
-// 确保debug日志目录存在
-const debugDirectory = path.join(process.cwd(), 'data/debug_logs');
-if (!fs.existsSync(debugDirectory)) {
-  fs.mkdirSync(debugDirectory, { recursive: true });
-}
+const DebugLogger = require('../utils/debugLogger');
 
 // 检查是否为模型列表请求
 function isModelsRequest(req) {
@@ -17,22 +10,35 @@ function isModelsRequest(req) {
 }
 
 // 代理所有OpenAI兼容的API请求
-router.all('/*', async (req, res) => {
+router.use('/', async (req, res, next) => {
   // 在try块外定义变量，以便在catch块中使用
   let config;
   let requestPath;
   
   try {
-    // 获取当前活跃配置
-    const activeConfigId = db.get('activeConfig').value();
-    
-    if (!activeConfigId) {
-      return res.status(400).json({ error: '没有活跃的API配置' });
-    }
+      // 获取当前活跃配置
+      const activeConfigId = db.get('activeConfig').value();
+      
+      if (!activeConfigId) {
+        return res.status(400).json({ error: '没有活跃的API配置' });
+      }
 
-    config = db.get('apiConfigs')
-      .find({ id: activeConfigId })
-      .value();
+      // 从缓存获取配置
+      const cache = require('../utils/cache');
+      const cacheKey = `config_${activeConfigId}`;
+      
+      if (cache.has(cacheKey)) {
+        config = cache.get(cacheKey);
+      } else {
+        config = db.get('apiConfigs')
+          .find({ id: activeConfigId })
+          .value();
+        
+        // 缓存配置
+        if (config) {
+          cache.set(cacheKey, config);
+        }
+      }
 
     if (!config) {
       return res.status(400).json({ error: '活跃配置不存在' });
@@ -102,24 +108,7 @@ router.all('/*', async (req, res) => {
         // 如果Debug模式开启，记录流式数据块
         const debugMode = db.get('debugMode').value();
         if (debugMode) {
-          const timestamp = new Date().toISOString().replace(/:/g, '-');
-          const logFileName = `debug_stream_${timestamp}.json`;
-          const logFilePath = path.join(debugDirectory, logFileName);
-          
-          const logData = {
-            timestamp: timestamp,
-            type: 'stream_chunk',
-            request: {
-              method: req.method,
-              url: url,
-              headers: req.headers,
-              body: req.method !== 'GET' ? req.body : undefined,
-              query: req.method === 'GET' ? req.query : undefined
-            },
-            chunk: chunk.toString()
-          };
-          
-          fs.appendFileSync(logFilePath, JSON.stringify(logData) + '\n');
+          DebugLogger.logStreamChunk(req, url, chunk);
         }
       });
 
@@ -136,27 +125,7 @@ router.all('/*', async (req, res) => {
       // 处理普通响应
       const debugMode = db.get('debugMode').value();
       if (debugMode) {
-        const timestamp = new Date().toISOString().replace(/:/g, '-');
-        const logFileName = `debug_${timestamp}.json`;
-        const logFilePath = path.join(debugDirectory, logFileName);
-        
-        const logData = {
-          timestamp: timestamp,
-          request: {
-            method: req.method,
-            url: url,
-            headers: req.headers,
-            body: req.method !== 'GET' ? req.body : undefined,
-            query: req.method === 'GET' ? req.query : undefined
-          },
-          response: {
-            status: response.status,
-            data: response.data
-          }
-        };
-        
-        fs.writeFileSync(logFilePath, JSON.stringify(logData, null, 2));
-        db.get('debugLogs').push(logData).write();
+        DebugLogger.logRequestResponse(req, res, url, response);
       }
       
       res.status(response.status).json(response.data);
@@ -176,13 +145,38 @@ router.all('/*', async (req, res) => {
     // 如果有响应错误，添加响应信息
     if (error.response) {
       errorDetails.status = error.response.status;
-      errorDetails.responseData = error.response.data;
+      
+      // 使用自定义replacer函数处理可能的循环引用
+      const safeReplacer = (key, value) => {
+        // 排除可能导致循环引用的对象，如Socket、TLSSocket等
+        if (value && typeof value === 'object' && 
+            (value.constructor && ['Socket', 'TLSSocket'].includes(value.constructor.name))) {
+          return '[Socket Object]';
+        }
+        return value;
+      };
+      
+      // 安全地获取响应数据
+      try {
+        errorDetails.responseData = JSON.parse(JSON.stringify(error.response.data, safeReplacer));
+      } catch (jsonError) {
+        errorDetails.responseData = { error: '无法序列化响应数据', message: jsonError.message };
+      }
       
       // 返回错误响应，并添加额外的错误详情字段
-      const responseData = {
-        ...error.response.data,
-        proxy_error_details: errorDetails
-      };
+      let responseData;
+      try {
+        responseData = {
+          ...JSON.parse(JSON.stringify(error.response.data, safeReplacer)),
+          proxy_error_details: errorDetails
+        };
+      } catch (jsonError) {
+        responseData = {
+          error: '代理请求失败',
+          message: error.message,
+          proxy_error_details: errorDetails
+        };
+      }
       
       res.status(error.response.status).json(responseData);
     } else {
@@ -196,4 +190,7 @@ router.all('/*', async (req, res) => {
   }
 });
 
-module.exports = router;
+// 导出路由
+module.exports = {
+  router
+};
